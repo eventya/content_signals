@@ -5,8 +5,8 @@ require_relative "lib/content_signals/version"
 Gem::Specification.new do |spec|
   spec.name = "content_signals"
   spec.version = ContentSignals::VERSION
-  spec.authors = ["Ioan Munteanu"]
-  spec.email = ["your-email@example.com"]
+  spec.authors = ["Ionuț Munteanu Alexandru"]
+  spec.email = ["ionut.munteanu@eventya.net"]
 
   spec.summary = "Content analytics for Rails - track page views, demographics, and engagement metrics"
   spec.description = "Track views, demographics, device types, and engagement signals for any Rails model. Polymorphic, multi-tenant ready, with hybrid mobile app support."
@@ -34,11 +34,11 @@ Gem::Specification.new do |spec|
 
   # Runtime dependencies
   spec.add_dependency "rails", ">= 7.0"
-  spec.add_dependency "maxminddb", "~> 1.0"  # IP geolocation
-  spec.add_dependency "browser", "~> 6.0"     # Device/browser detection
+  spec.add_dependency "maxmind-geoip2", "~> 1.1"  # IP geolocation (correct gem name)
+  spec.add_dependency "browser", "~> 5.0"         # Device/browser detection
 
   # Development dependencies
   spec.add_development_dependency "rspec", "~> 3.0"
-  spec.add_development_dependency "sqlite3", "~> 1.4"
+  spec.add_development_dependency "sqlite3", ">= 2.1"
   spec.add_development_dependency "pg", "~> 1.1"
 end

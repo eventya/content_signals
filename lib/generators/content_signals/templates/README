@@ -1,0 +1,36 @@
+===============================================================================
+
+  ContentSignals has been installed!
+
+  Next steps:
+
+  1. Run migrations:
+     rails db:migrate
+
+  2. Add page_views_count counter to your trackable models:
+     rails generate migration AddPageViewsCountToYourModel page_views_count:integer
+
+     Then edit the migration to add default value and index:
+
+     add_column :your_models, :page_views_count, :integer, default: 0, null: false
+     add_index :your_models, :page_views_count
+
+  3. Include tracking in your controllers:
+
+     class YourController < ApplicationController
+       include ContentSignals::TrackablePageViews
+
+       def show
+         @record = YourModel.find(params[:id])
+         # Page views are tracked automatically!
+       end
+     end
+
+  4. (Optional) Configure geolocation:
+     - Download MaxMind GeoLite2 database: https://dev.maxmind.com/geoip/geolite2-free-geolocation-data
+     - Place in db/GeoLite2-City.mmdb
+     - Update config/initializers/content_signals.rb
+
+  For more information, see: https://github.com/yourusername/content_signals
+
+===============================================================================

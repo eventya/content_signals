@@ -1,0 +1,75 @@
+# frozen_string_literal: true
+
+# Create test database schema
+ActiveRecord::Schema.define do
+  # Test trackable models
+  create_table :pages, force: true do |t|
+    t.string :title
+    t.integer :page_views_count, default: 0, null: false
+    t.integer :tenant_id
+    t.timestamps
+  end
+
+  create_table :profiles, force: true do |t|
+    t.string :name
+    t.integer :page_views_count, default: 0, null: false
+    t.integer :tenant_id
+    t.timestamps
+  end
+
+  create_table :users, force: true do |t|
+    t.string :email
+    t.boolean :admin, default: false
+    t.integer :tenant_id
+    t.timestamps
+  end
+
+  # PageView table (from specs)
+  create_table :content_signals_page_views, force: true do |t|
+    # Multi-tenancy support (optional)
+    t.integer :tenant_id, index: true
+
+    # Polymorphic trackable (Page, Profile, Event, etc.)
+    t.string :trackable_type, null: false
+    t.bigint :trackable_id, null: false
+
+    t.integer :user_id
+    t.string :visitor_id, null: false
+    t.string :ip_address
+    t.string :user_agent
+    t.string :referrer
+
+    # Demographics
+    t.string :country_code, limit: 2
+    t.string :country_name
+    t.string :city
+    t.string :region
+    t.decimal :latitude, precision: 10, scale: 6
+    t.decimal :longitude, precision: 10, scale: 6
+    t.string :locale, limit: 10
+
+    # Device info
+    t.string :device_type, limit: 20
+    t.string :browser, limit: 50
+    t.string :os, limit: 50
+
+    # Hybrid app support
+    t.string :app_platform, limit: 20
+    t.string :app_version, limit: 20
+    t.string :device_id
+
+    t.datetime :viewed_at, null: false
+    t.timestamps
+
+    t.index [:trackable_type, :trackable_id, :viewed_at], name: "index_page_views_on_trackable_and_date"
+    t.index [:trackable_type, :trackable_id, :country_code], name: "index_page_views_on_trackable_and_country"
+    t.index [:trackable_type, :trackable_id, :city], name: "index_page_views_on_trackable_and_city"
+    t.index [:trackable_type, :trackable_id, :device_type], name: "index_page_views_on_trackable_and_device"
+    t.index [:tenant_id, :viewed_at], name: "index_page_views_on_tenant_and_date"
+    t.index [:visitor_id, :viewed_at]
+    t.index [:device_id]
+  end
+
+  add_index :pages, :page_views_count
+  add_index :profiles, :page_views_count
+end

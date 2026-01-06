@@ -1,0 +1,19 @@
+ContentSignals.configure do |config|
+  # Multi-tenancy (optional)
+  # Enable if your app has multiple tenants/accounts
+  config.multitenancy = false
+  config.current_tenant_method = :current_tenant_id
+
+  # Redis (optional, for unique visitor tracking)
+  # Requires Redis gem and connection
+  config.redis_enabled = true
+  config.redis_namespace = "content_signals"
+
+  # MaxMind GeoLite2 database path (optional, for geolocation)
+  # Download from: https://dev.maxmind.com/geoip/geolite2-free-geolocation-data
+  # config.maxmind_db_path = Rails.root.join("db", "GeoLite2-City.mmdb")
+
+  # Tracking preferences
+  config.track_bots = false    # Set to true to track bot/crawler visits
+  config.track_admins = false  # Set to true to track admin user visits
+end
