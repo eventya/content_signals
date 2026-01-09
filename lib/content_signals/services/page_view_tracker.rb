@@ -74,9 +74,9 @@ module ContentSignals
     end
 
     def compile_tracking_data
-      location_data = VisitorLocationService.locate(@request.ip) || {}
+      location_data = ContentSignals::VisitorLocationService.locate(@request.ip) || {}
       app_context = detect_app_context
-      device_data = DeviceDetectorService.detect(
+      device_data = ContentSignals::DeviceDetectorService.detect(
         @request.user_agent,
         app_platform: app_context[:app_platform]
       ) || {}

@@ -3,6 +3,19 @@
 require_relative "content_signals/version"
 require_relative "content_signals/configuration"
 
+# Optional dependencies - gracefully handle if not installed
+begin
+  require 'browser'
+rescue LoadError
+  # Browser gem not installed - device detection will be disabled
+end
+
+begin
+  require 'maxmind/geoip2'
+rescue LoadError
+  # MaxMind gem not installed - geolocation will be disabled
+end
+
 module ContentSignals
   class Error < StandardError; end
 
