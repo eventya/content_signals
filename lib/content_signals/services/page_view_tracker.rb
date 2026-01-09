@@ -41,11 +41,34 @@ module ContentSignals
       return "device_#{device_id}" if device_id.present?
 
       # 3. Browser cookie (works for web, not reliable in WebViews)
-      cookie_id = @request.cookie_jar.signed[:visitor_id] if @request.respond_to?(:cookie_jar)
-      return cookie_id if cookie_id.present?
+      if @request.respond_to?(:cookie_jar)
+        cookie_id = @request.cookie_jar.signed[:visitor_id]
 
-      # 4. Fallback to IP + User Agent hash
+        if cookie_id.present?
+          return cookie_id
+        else
+          # Generate new visitor_id and set cookie
+          new_visitor_id = "visitor_#{SecureRandom.uuid}"
+          set_visitor_cookie(new_visitor_id)
+          return new_visitor_id
+        end
+      end
+
+      # 4. Fallback to IP + User Agent hash (for non-cookie scenarios)
       "anon_#{Digest::SHA256.hexdigest("#{@request.ip}:#{@request.user_agent}")[0..15]}"
+    end
+
+    def set_visitor_cookie(visitor_id)
+      return unless @request.respond_to?(:cookie_jar)
+
+      @request.cookie_jar.signed[:visitor_id] = {
+        value: visitor_id,
+        expires: 2.years.from_now,
+        httponly: true,
+        same_site: :lax
+      }
+    rescue => e
+      Rails.logger.error "Failed to set visitor cookie: #{e.message}"
     end
 
     def unique_today?

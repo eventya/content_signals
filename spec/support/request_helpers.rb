@@ -25,11 +25,18 @@ class MockCookieJar
   end
 
   def [](key)
-    @cookies[key]
+    value = @cookies[key]
+    # If it's a hash with :value key (Rails cookie format), return just the value
+    value.is_a?(Hash) && value.key?(:value) ? value[:value] : value
   end
 
   def []=(key, value)
     @cookies[key] = value
+  end
+
+  # Allow tests to access the full cookie data including options
+  def cookie_data(key)
+    @cookies[key]
   end
 end
 

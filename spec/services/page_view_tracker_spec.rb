@@ -245,7 +245,71 @@ RSpec.describe ContentSignals::PageViewTracker do
     context 'without user or device_id' do
       let(:user) { nil }
 
+      context 'with existing visitor cookie' do
+        before do
+          request.cookie_jar.signed[:visitor_id] = 'visitor_existing-cookie-123'
+        end
+
+        it 'uses existing cookie value' do
+          visitor_id = tracker.send(:identify_visitor)
+          expect(visitor_id).to eq('visitor_existing-cookie-123')
+        end
+
+        it 'does not set a new cookie' do
+          expect(request.cookie_jar).not_to receive(:[]=)
+          tracker.send(:identify_visitor)
+        end
+      end
+
+      context 'without visitor cookie' do
+        it 'generates new visitor_id and sets cookie' do
+          visitor_id = tracker.send(:identify_visitor)
+
+          expect(visitor_id).to start_with('visitor_')
+          expect(visitor_id).to match(/^visitor_[0-9a-f-]{36}$/) # UUID format
+        end
+
+        it 'sets signed cookie with proper options' do
+          visitor_id = tracker.send(:identify_visitor)
+
+          cookie_data = request.cookie_jar.signed.cookie_data(:visitor_id)
+          expect(cookie_data[:value]).to eq(visitor_id)
+          expect(cookie_data[:httponly]).to be true
+          expect(cookie_data[:same_site]).to eq(:lax)
+          expect(cookie_data[:expires]).to be > 1.year.from_now
+        end
+
+        it 'returns same visitor_id on subsequent calls without re-setting cookie' do
+          visitor_id1 = tracker.send(:identify_visitor)
+          visitor_id2 = tracker.send(:identify_visitor)
+
+          expect(visitor_id1).to eq(visitor_id2)
+        end
+      end
+
+      context 'when cookie_jar is not available' do
+        before do
+          allow(request).to receive(:respond_to?).with(:cookie_jar).and_return(false)
+        end
+
+        it 'falls back to anonymous ID from IP and user agent' do
+          visitor_id = tracker.send(:identify_visitor)
+          expect(visitor_id).to start_with('anon_')
+          expect(visitor_id.length).to eq(21) # "anon_" + 16 chars
+        end
+      end
+    end
+
+    context 'legacy tests for IP-based identification' do
+      let(:user) { nil }
+
+      before do
+        # Simulate no cookie jar available
+        allow(request).to receive(:respond_to?).with(:cookie_jar).and_return(false)
+      end
+
       it 'generates anonymous visitor ID from IP and user agent' do
+        tracker = described_class.new(page, request, user)
         visitor_id = tracker.send(:identify_visitor)
         expect(visitor_id).to start_with('anon_')
         expect(visitor_id.length).to eq(21) # "anon_" + 16 chars
