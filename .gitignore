@@ -12,3 +12,4 @@
 
 # VS Code Workspace files
 *.code-workspace
+*.gem
