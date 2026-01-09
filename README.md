@@ -104,6 +104,10 @@ ContentSignals.configure do |config|
   config.tenant_model = 'Account'
 
   # Redis for unique visitor tracking (optional)
+  # When enabled, prevents duplicate tracking of the same visitor on the same day
+  # Keys expire automatically after 24 hours
+  # Without Redis: all PageView records are still stored in the database,
+  # but the same visitor may create multiple records per day
   config.redis_enabled = true
   config.redis_namespace = 'content_signals'
 
@@ -152,7 +156,7 @@ page_views.authenticated  # Logged-in users
 page_views.anonymous      # Anonymous visitors
 
 # Analytics aggregations
-page_views.unique_count              # Unique visitors
+page_views.unique_count              # Unique visitors (counts distinct visitor_id)
 page_views.top_countries(10)         # Top 10 countries
 page_views.top_cities(10)            # Top 10 cities
 page_views.device_breakdown          # Device type distribution
@@ -280,6 +284,45 @@ https://yoursite.com/pages/1?app_platform=capacitor&device_id=abc123&app_version
 ```
 
 Views from mobile apps will be automatically detected and tracked with `app_platform` and `device_id`.
+
+### Redis and Unique Visitor Tracking
+
+ContentSignals uses **Redis** (via `Rails.cache`) to optimize unique visitor tracking per day:
+
+#### How it works:
+
+**With Redis enabled:**
+- First page view from a visitor creates a cache key: `page_view:{trackable}:{visitor_id}:{date}`
+- Cache key expires automatically after 24 hours
+- Duplicate views from the same visitor on the same day are still recorded in the database but can be easily identified
+- Also maintains a daily unique counter for fast analytics
+
+**Without Redis:**
+- All PageView records are still created and stored in the database
+- You can still calculate unique visitors using: `ContentSignals::PageView.where(trackable: page).distinct.count(:visitor_id)`
+- Redis is purely an optimization - not required for core functionality
+
+#### Storage and cleanup:
+
+```ruby
+# Cache keys stored in Redis
+"page_view:Stejar::Cms::Page:3124:visitor_abc123:2026-01-09"  # TTL: 24 hours
+
+# Automatically cleaned up after 24 hours - no manual deletion needed
+```
+
+#### Query unique visitors without Redis:
+
+```ruby
+# Total unique visitors
+page_views.distinct.count(:visitor_id)
+
+# Unique visitors today
+page_views.today.distinct.count(:visitor_id)
+
+# Unique visitors this week
+page_views.this_week.distinct.count(:visitor_id)
+```
 
 ### Geolocation Setup
 
