@@ -6,15 +6,21 @@ A Rails engine for tracking page views and content engagement with rich analytic
 
 ## Features
 
-- 📊 **Page view tracking** with visitor identification
-- 🌍 **Geolocation** (country, city, region) via MaxMind GeoLite2
-- 📱 **Device detection** (mobile, tablet, desktop, hybrid apps)
-- 🏢 **Multi-tenant support** (optional)
-- 🤖 **Bot filtering** (automatically excludes crawlers)
-- 🔄 **Background processing** (non-blocking with ActiveJob)
-- 📈 **Rich analytics** with time-based scopes and aggregations
-- 🎯 **Polymorphic tracking** (works with any model)
-- 📲 **Hybrid app support** (Capacitor, Cordova, React Native, Flutter)
+- **Page view tracking** with visitor identification
+- **Use cookies** to identify anonymous returning visitors
+- **Use Redis to deduplicate unique views per day** (optional)
+- **Device detection** (mobile, tablet, desktop, hybrid apps)
+- **Bot filtering** (automatically excludes crawlers)
+- **Background processing** (non-blocking with ActiveJob)
+- **Multi-tenant support** (optional)
+- **Rich analytics** with time-based scopes and aggregations
+- **Polymorphic tracking** (works with any model)
+- **Hybrid app support** (Capacitor, Cordova, React Native, Flutter)
+
+
+## Further development plans
+- **Geolocation** (country, city, region) via MaxMind GeoLite2
+
 
 ## Installation
 
