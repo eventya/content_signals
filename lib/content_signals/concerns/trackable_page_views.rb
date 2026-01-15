@@ -16,6 +16,9 @@ module ContentSignals
       trackable = find_trackable_for_tracking
       return unless trackable
 
+      # Ensure visitor cookie is set
+      ensure_visitor_cookie
+
       PageViewTracker.track(
         trackable: trackable,
         user: current_user_for_tracking,
@@ -24,6 +27,20 @@ module ContentSignals
     rescue => e
       Rails.logger.error "Failed to track page view: #{e.message}"
       # Don't raise - tracking failures shouldn't break the request
+    end
+
+    def ensure_visitor_cookie
+      return if cookies.signed[:visitor_id].present?
+      return if current_user_for_tracking.present? # Don't need cookie for authenticated users
+
+      cookies.signed[:visitor_id] = {
+        value: "visitor_#{SecureRandom.uuid}",
+        expires: 2.years.from_now,
+        httponly: true,
+        same_site: :lax
+      }
+    rescue => e
+      Rails.logger.error "Failed to set visitor cookie: #{e.message}"
     end
 
     def should_skip_tracking?

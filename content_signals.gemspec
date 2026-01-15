@@ -15,10 +15,10 @@ Gem::Specification.new do |spec|
   spec.required_ruby_version = ">= 3.0.0"
 
   spec.metadata["homepage_uri"] = spec.homepage
-  spec.metadata["source_code_uri"] = "https://github.com/imunteanu/content_signals"
-  spec.metadata["changelog_uri"] = "https://github.com/imunteanu/content_signals/blob/main/CHANGELOG.md"
-  spec.metadata["bug_tracker_uri"] = "https://github.com/imunteanu/content_signals/issues"
-  spec.metadata["documentation_uri"] = "https://github.com/imunteanu/content_signals#readme"
+  spec.metadata["source_code_uri"] = "https://github.com/eventya/content_signals"
+  spec.metadata["changelog_uri"] = "https://github.com/eventya/content_signals/blob/main/CHANGELOG.md"
+  spec.metadata["bug_tracker_uri"] = "https://github.com/eventya/content_signals/issues"
+  spec.metadata["documentation_uri"] = "https://github.com/eventya/content_signals#readme"
 
   # Specify which files should be added to the gem when it is released.
   gemspec = File.basename(__FILE__)
