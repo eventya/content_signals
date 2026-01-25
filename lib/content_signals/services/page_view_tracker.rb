@@ -44,6 +44,16 @@ module ContentSignals
       if @request.respond_to?(:cookie_jar)
         cookie_id = @request.cookie_jar.signed[:visitor_id]
         return cookie_id if cookie_id.present?
+        
+        # Generate and set new visitor cookie if none exists
+        new_visitor_id = "visitor_#{SecureRandom.uuid}"
+        @request.cookie_jar.signed[:visitor_id] = {
+          value: new_visitor_id,
+          expires: 2.years.from_now,
+          httponly: true,
+          same_site: :lax
+        }
+        return new_visitor_id
       end
 
       # 4. Fallback to IP + User Agent hash (for non-cookie scenarios)

@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    content_signals (0.1.0)
+    content_signals (0.1.1)
       browser (~> 5.0)
       maxmind-geoip2 (~> 1.1)
       rails (>= 7.0)
