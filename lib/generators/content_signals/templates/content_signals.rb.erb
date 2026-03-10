@@ -18,7 +18,7 @@ ContentSignals.configure do |config|
   config.geoip_provider = :maxmind
 
   # MaxMind GeoLite2 database path (used when geoip_provider = :maxmind)
-  # Initial download: bundle exec rake app:stejar:geoip:update  (or run the job manually)
+  # Initial download: bundle exec rake stejar:geoip:update  (or run the job manually)
   # Auto-updated weekly via ContentSignals::UpdateGeoipDatabaseJob (see config/recurring.yml)
   config.maxmind_db_path = Rails.root.join("db", "GeoLite2-City.mmdb")
 

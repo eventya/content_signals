@@ -4,7 +4,7 @@ module ContentSignals
   module Geoip
     # Offline geolocation using a local MaxMind GeoLite2-City .mmdb file.
     # Requires the maxminddb gem.
-    # Download/update the database: bundle exec rake app:stejar:geoip:update
+    # Download/update the database: bundle exec rake stejar:geoip:update
     class MaxmindProvider < BaseProvider
       def self.locate(ip_address)
         return nil if ip_address.blank? || local_ip?(ip_address)

@@ -9,6 +9,9 @@ module ContentSignals
     discard_on ActiveRecord::RecordInvalid
 
     def perform(trackable_type, trackable_id, user_id, tracking_data)
+      ip = tracking_data["ip_address"] || tracking_data[:ip_address]
+      location_data = ContentSignals::VisitorLocationService.locate(ip) || {}
+
       PageView.create!(
         tenant_id: tracking_data['tenant_id'] || tracking_data[:tenant_id],
         trackable_type: trackable_type,
@@ -18,12 +21,12 @@ module ContentSignals
         ip_address: tracking_data['ip_address'] || tracking_data[:ip_address],
         user_agent: tracking_data['user_agent'] || tracking_data[:user_agent],
         referrer: tracking_data['referrer'] || tracking_data[:referrer],
-        country_code: tracking_data['country_code'] || tracking_data[:country_code],
-        country_name: tracking_data['country_name'] || tracking_data[:country_name],
-        city: tracking_data['city'] || tracking_data[:city],
-        region: tracking_data['region'] || tracking_data[:region],
-        latitude: tracking_data['latitude'] || tracking_data[:latitude],
-        longitude: tracking_data['longitude'] || tracking_data[:longitude],
+        country_code: location_data[:country_code],
+        country_name: location_data[:country_name],
+        city: location_data[:city],
+        region: location_data[:region],
+        latitude: location_data[:latitude],
+        longitude: location_data[:longitude],
         locale: tracking_data['locale'] || tracking_data[:locale],
         device_type: tracking_data['device_type'] || tracking_data[:device_type],
         browser: tracking_data['browser'] || tracking_data[:browser],

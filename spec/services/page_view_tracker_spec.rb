@@ -30,7 +30,6 @@ RSpec.describe ContentSignals::PageViewTracker do
     subject(:tracker) { described_class.new(page, request, user) }
 
     before do
-      allow(ContentSignals::VisitorLocationService).to receive(:locate).and_return(nil)
       allow(ContentSignals::DeviceDetectorService).to receive(:detect).and_return(
         device_type: 'desktop',
         browser: 'Chrome',
@@ -80,44 +79,38 @@ RSpec.describe ContentSignals::PageViewTracker do
       )
     end
 
-    it 'calls location and device services' do
+    it 'calls device service but NOT location service (location resolved in job)' do
+      allow(ContentSignals::VisitorLocationService).to receive(:locate)
       tracker.track
 
-      expect(ContentSignals::VisitorLocationService).to have_received(:locate).with('192.168.1.100')
+      expect(ContentSignals::VisitorLocationService).not_to have_received(:locate)
       expect(ContentSignals::DeviceDetectorService).to have_received(:detect)
         .with('Mozilla/5.0', app_platform: nil)
     end
 
-    context 'with location data' do
-      before do
-        allow(ContentSignals::VisitorLocationService).to receive(:locate).and_return(
-          country_code: 'US',
-          country_name: 'United States',
-          city: 'New York'
-        )
-      end
+    it 'passes ip_address to job for deferred location lookup' do
+      allow(ContentSignals::TrackPageViewJob).to receive(:perform_later)
 
-      it 'includes location data in tracking' do
-        allow(ContentSignals::TrackPageViewJob).to receive(:perform_later)
+      tracker.track
 
-        tracker.track
-
-        expect(ContentSignals::TrackPageViewJob).to have_received(:perform_later).with(
-          'Page',
-          page.id,
-          user.id,
-          hash_including(
-            country_code: 'US',
-            country_name: 'United States',
-            city: 'New York'
-          )
-        )
-      end
+      expect(ContentSignals::TrackPageViewJob).to have_received(:perform_later).with(
+        'Page', page.id, user.id, hash_including(ip_address: '192.168.1.100')
+      )
     end
 
-    context 'when services return nil' do
+    it 'does not include location fields in job payload (resolved by worker)' do
+      allow(ContentSignals::TrackPageViewJob).to receive(:perform_later)
+
+      tracker.track
+
+      expect(ContentSignals::TrackPageViewJob).to have_received(:perform_later).with(
+        'Page', page.id, user.id,
+        satisfy { |data| !data.key?(:country_code) && !data.key?(:city) }
+      )
+    end
+
+    context 'when device service returns nil' do
       before do
-        allow(ContentSignals::VisitorLocationService).to receive(:locate).and_return(nil)
         allow(ContentSignals::DeviceDetectorService).to receive(:detect).and_return(nil)
       end
 
@@ -128,7 +121,6 @@ RSpec.describe ContentSignals::PageViewTracker do
 
     context 'when user revisits the same page multiple times' do
       before do
-        allow(ContentSignals::VisitorLocationService).to receive(:locate).and_return(nil)
         allow(ContentSignals::DeviceDetectorService).to receive(:detect).and_return(
           device_type: 'desktop',
           browser: 'Chrome',
@@ -585,11 +577,6 @@ RSpec.describe ContentSignals::PageViewTracker do
     subject(:tracker) { described_class.new(page, request, user) }
 
     before do
-      allow(ContentSignals::VisitorLocationService).to receive(:locate).and_return(
-        country_code: 'US',
-        country_name: 'United States',
-        city: 'New York'
-      )
       allow(ContentSignals::DeviceDetectorService).to receive(:detect).and_return(
         device_type: 'desktop',
         browser: 'Chrome',
@@ -605,13 +592,15 @@ RSpec.describe ContentSignals::PageViewTracker do
         ip_address: '192.168.1.100',
         user_agent: 'Mozilla/5.0',
         referrer: 'https://google.com',
-        country_code: 'US',
-        country_name: 'United States',
-        city: 'New York',
         device_type: 'desktop',
         browser: 'Chrome',
         os: 'macOS'
       )
+    end
+
+    it 'does not include location fields (resolved in job)' do
+      data = tracker.send(:compile_tracking_data)
+      expect(data.keys).not_to include(:country_code, :country_name, :city, :region, :latitude, :longitude)
     end
 
     it 'includes timestamp' do
@@ -625,8 +614,7 @@ RSpec.describe ContentSignals::PageViewTracker do
       expect(data[:locale]).to eq('en-US')
     end
 
-    it 'handles missing optional data gracefully' do
-      allow(ContentSignals::VisitorLocationService).to receive(:locate).and_return(nil)
+    it 'handles missing device data gracefully' do
       allow(ContentSignals::DeviceDetectorService).to receive(:detect).and_return(nil)
 
       data = tracker.send(:compile_tracking_data)
@@ -644,15 +632,6 @@ RSpec.describe ContentSignals::PageViewTracker do
     it 'tracks a complete page view with all data' do
       request.headers['Accept-Language'] = 'en-US'
 
-      allow(ContentSignals::VisitorLocationService).to receive(:locate).and_return(
-        country_code: 'RO',
-        country_name: 'Romania',
-        city: 'Bucharest',
-        region: 'Bucuresti',
-        latitude: 44.4268,
-        longitude: 26.1025
-      )
-
       allow(ContentSignals::DeviceDetectorService).to receive(:detect).and_return(
         device_type: 'mobile',
         browser: 'Safari',
@@ -669,8 +648,7 @@ RSpec.describe ContentSignals::PageViewTracker do
         user.id,
         hash_including(
           visitor_id: "user_#{user.id}",
-          country_code: 'RO',
-          city: 'Bucharest',
+          ip_address: '192.168.1.100',
           device_type: 'mobile',
           browser: 'Safari'
         )

@@ -86,7 +86,9 @@ module ContentSignals
     end
 
     def compile_tracking_data
-      location_data = ContentSignals::VisitorLocationService.locate(@request.ip) || {}
+      # Note: IP geolocation (MaxMind/IPinfo) is intentionally NOT resolved here.
+      # It happens in TrackPageViewJob so the web request stays fast and the DB
+      # file is only needed on the worker, not on every web server.
       app_context = detect_app_context
       device_data = ContentSignals::DeviceDetectorService.detect(
         @request.user_agent,
@@ -104,7 +106,7 @@ module ContentSignals
         app_platform: app_context[:app_platform],
         app_version: app_context[:app_version],
         device_id: app_context[:device_id]
-      }.merge(location_data).merge(device_data)
+      }.merge(device_data)
     end
 
     def detect_app_context
