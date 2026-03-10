@@ -11,9 +11,9 @@ rescue LoadError
 end
 
 begin
-  require "maxminddb"
+  require "maxmind/geoip2"
 rescue LoadError
-  # maxminddb gem not installed - MaxmindProvider will be disabled
+  # maxmind-geoip2 gem not installed - MaxmindProvider will be disabled
 end
 
 require "net/http"

@@ -3,7 +3,7 @@
 module ContentSignals
   module Geoip
     # Offline geolocation using a local MaxMind GeoLite2-City .mmdb file.
-    # Requires the maxminddb gem.
+    # Requires the maxmind-geoip2 gem.
     # Download/update the database: bundle exec rake stejar:geoip:update
     class MaxmindProvider < BaseProvider
       def self.locate(ip_address)
@@ -12,29 +12,27 @@ module ContentSignals
         db_path = ContentSignals.configuration.maxmind_db_path
         return nil unless db_path && File.exist?(db_path.to_s)
 
-        db = @db ||= MaxMindDB.new(db_path.to_s)
-        result = db.lookup(ip_address)
-        return nil unless result&.found?
+        reader = @reader ||= MaxMind::GeoIP2::Reader.new(database: db_path.to_s)
+        record = reader.city(ip_address)
 
         {
-          country_code: result.country.iso_code,
-          country_name: result.country.name,
-          city:         result.city.name,
-          region:       result.subdivisions.most_specific&.name,
-          latitude:     result.location.latitude,
-          longitude:    result.location.longitude
+          country_code: record.country.iso_code,
+          country_name: record.country.name,
+          city:         record.city.name,
+          region:       record.subdivisions.most_specific&.name,
+          latitude:     record.location.latitude,
+          longitude:    record.location.longitude
         }
-      rescue MaxMindDB::Error => e
-        Rails.logger.error "MaxMind lookup error: #{e.message}"
+      rescue MaxMind::GeoIP2::AddressNotFoundError
         nil
       rescue => e
         Rails.logger.error "MaxMind geolocation error: #{e.message}"
         nil
       end
 
-      # Reset cached DB handle (useful after db file is updated)
+      # Reset cached reader handle (call after db file is updated)
       def self.reset!
-        @db = nil
+        @reader = nil
       end
     end
   end

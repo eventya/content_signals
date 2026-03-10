@@ -61,31 +61,54 @@ RSpec.describe ContentSignals::Geoip::MaxmindProvider do
       end
     end
 
-    context "when MaxMindDB raises an error" do
-      let(:fake_error_class) { Class.new(StandardError) }
-
+    context "when address is not found in database" do
       before do
         ContentSignals.configure { |c| c.maxmind_db_path = "/fake/path.mmdb" }
         allow(File).to receive(:exist?).and_call_original
         allow(File).to receive(:exist?).with("/fake/path.mmdb").and_return(true)
 
-        fake_db = double("MaxMindDB")
-        stub_const("MaxMindDB", Module.new)
-        stub_const("MaxMindDB::Error", fake_error_class)
-        allow(MaxMindDB).to receive(:new).and_return(fake_db)
-        allow(fake_db).to receive(:lookup).and_raise(MaxMindDB::Error, "invalid database")
+        fake_reader = double("MaxMind::GeoIP2::Reader")
+        fake_reader_class = double("MaxMind::GeoIP2::Reader class")
+        allow(fake_reader_class).to receive(:new).and_return(fake_reader)
+
+        not_found_error = Class.new(StandardError)
+        stub_const("MaxMind::GeoIP2::Reader", fake_reader_class)
+        stub_const("MaxMind::GeoIP2::AddressNotFoundError", not_found_error)
+
+        allow(fake_reader).to receive(:city).and_raise(MaxMind::GeoIP2::AddressNotFoundError)
+      end
+
+      it "returns nil without logging" do
+        expect(Rails.logger).not_to receive(:error)
+        expect(described_class.locate("8.8.8.8")).to be_nil
+      end
+    end
+
+    context "when reader raises an unexpected error" do
+      before do
+        ContentSignals.configure { |c| c.maxmind_db_path = "/fake/path.mmdb" }
+        allow(File).to receive(:exist?).and_call_original
+        allow(File).to receive(:exist?).with("/fake/path.mmdb").and_return(true)
+
+        fake_reader = double("MaxMind::GeoIP2::Reader")
+        fake_reader_class = double("MaxMind::GeoIP2::Reader class")
+        allow(fake_reader_class).to receive(:new).and_return(fake_reader)
+
+        stub_const("MaxMind::GeoIP2::Reader", fake_reader_class)
+        stub_const("MaxMind::GeoIP2::AddressNotFoundError", Class.new(StandardError))
+
+        allow(fake_reader).to receive(:city).and_raise(RuntimeError, "corrupt database")
       end
 
       it "returns nil and logs the error" do
-        expect(Rails.logger).to receive(:error).with(/MaxMind lookup error/)
+        expect(Rails.logger).to receive(:error).with(/MaxMind geolocation error/)
         expect(described_class.locate("8.8.8.8")).to be_nil
       end
     end
   end
 
   describe ".reset!" do
-    it "clears the cached DB handle" do
-      # Ensure reset! doesn't raise and is callable
+    it "clears the cached reader handle" do
       expect { described_class.reset! }.not_to raise_error
     end
   end
