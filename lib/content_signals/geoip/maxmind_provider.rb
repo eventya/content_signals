@@ -19,7 +19,7 @@ module ContentSignals
           country_code: record.country.iso_code,
           country_name: record.country.name,
           city:         record.city.name,
-          region:       record.subdivisions.most_specific&.name,
+          region:       record.subdivisions.last&.name,
           latitude:     record.location.latitude,
           longitude:    record.location.longitude
         }
