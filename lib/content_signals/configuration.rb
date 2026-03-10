@@ -11,7 +11,8 @@ module ContentSignals
                   :track_bots,
                   :track_admins,
                   :geoip_provider,  # Symbol (:maxmind, :ipinfo, :null) or a provider class
-                  :geoip_token      # API token for online providers (e.g. IPinfo)
+                  :geoip_token,     # API token for online providers (e.g. IPinfo)
+                  :retention_days   # Days to keep raw page_views before purging (default: 90)
 
     def initialize
       @multitenancy = false
@@ -24,6 +25,7 @@ module ContentSignals
       @track_admins = false
       @geoip_provider = :maxmind
       @geoip_token = nil
+      @retention_days = 90
     end
 
     # Returns the resolved provider class for IP geolocation.

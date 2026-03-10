@@ -45,6 +45,7 @@ require_relative "content_signals/engine" if defined?(Rails::Engine)
 # Always load models when ActiveRecord is available
 if defined?(ActiveRecord)
   require_relative "content_signals/models/page_view"
+  require_relative "content_signals/models/analytics_daily_stat"
 end
 
 # Load geoip providers
@@ -62,6 +63,8 @@ require_relative "content_signals/services/device_detector_service"
 if defined?(ActiveJob)
   require_relative "content_signals/jobs/track_page_view_job"
   require_relative "content_signals/jobs/update_geoip_database_job"
+  require_relative "content_signals/jobs/aggregate_analytics_job"
+  require_relative "content_signals/jobs/purge_page_views_job"
 end
 
 # Load concerns if ActiveSupport is available
