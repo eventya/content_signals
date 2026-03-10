@@ -4,7 +4,7 @@ module ContentSignals
   # Downloads/refreshes the MaxMind GeoLite2-City database from the public mirror.
   # Only runs when geoip_provider is :maxmind and maxmind_db_path is configured.
   # Schedule via config/recurring.yml (added by `rails generate content_signals:install`).
-  class UpdateGeoipDatabaseJob < ApplicationJob
+  class UpdateGeoipDatabaseJob < ActiveJob::Base
     queue_as :default
 
     MIRROR_URL = "https://github.com/P3TERX/GeoLite.mmdb/raw/download/GeoLite2-City.mmdb"
