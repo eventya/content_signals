@@ -9,7 +9,9 @@ module ContentSignals
                   :redis_namespace,
                   :maxmind_db_path,
                   :track_bots,
-                  :track_admins
+                  :track_admins,
+                  :geoip_provider,  # Symbol (:maxmind, :ipinfo, :null) or a provider class
+                  :geoip_token      # API token for online providers (e.g. IPinfo)
 
     def initialize
       @multitenancy = false
@@ -20,6 +22,22 @@ module ContentSignals
       @maxmind_db_path = default_maxmind_path
       @track_bots = false
       @track_admins = false
+      @geoip_provider = :maxmind
+      @geoip_token = nil
+    end
+
+    # Returns the resolved provider class for IP geolocation.
+    # Accepts a symbol (:maxmind, :ipinfo, :null) or any class that responds to .locate(ip).
+    def resolved_geoip_provider
+      case @geoip_provider
+      when :maxmind then ContentSignals::Geoip::MaxmindProvider
+      when :ipinfo  then ContentSignals::Geoip::IpinfoProvider
+      when :null    then ContentSignals::Geoip::NullProvider
+      when Class    then @geoip_provider
+      else
+        raise ArgumentError, "Unknown geoip_provider: #{@geoip_provider.inspect}. " \
+                             "Use :maxmind, :ipinfo, :null, or a custom provider class."
+      end
     end
 
     def multitenancy?

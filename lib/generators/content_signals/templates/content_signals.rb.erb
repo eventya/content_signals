@@ -1,3 +1,5 @@
+require "content_signals"
+
 ContentSignals.configure do |config|
   # Multi-tenancy (optional)
   # Enable if your app has multiple tenants/accounts
@@ -9,9 +11,19 @@ ContentSignals.configure do |config|
   config.redis_enabled = true
   config.redis_namespace = "content_signals"
 
-  # MaxMind GeoLite2 database path (optional, for geolocation)
-  # Download from: https://dev.maxmind.com/geoip/geolite2-free-geolocation-data
-  # config.maxmind_db_path = Rails.root.join("db", "GeoLite2-City.mmdb")
+  # IP Geolocation provider
+  # :maxmind  — offline, fast, no API calls. Requires local .mmdb file (default)
+  # :ipinfo   — online, no local file needed. Requires IPINFO_TOKEN env var
+  # :null     — disables geolocation entirely
+  config.geoip_provider = :maxmind
+
+  # MaxMind GeoLite2 database path (used when geoip_provider = :maxmind)
+  # Initial download: bundle exec rake app:stejar:geoip:update  (or run the job manually)
+  # Auto-updated weekly via ContentSignals::UpdateGeoipDatabaseJob (see config/recurring.yml)
+  config.maxmind_db_path = Rails.root.join("db", "GeoLite2-City.mmdb")
+
+  # IPinfo API token (used when geoip_provider = :ipinfo)
+  # config.geoip_token = ENV["IPINFO_TOKEN"]
 
   # Tracking preferences
   config.track_bots = false    # Set to true to track bot/crawler visits

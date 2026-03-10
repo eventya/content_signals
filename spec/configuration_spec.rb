@@ -34,4 +34,55 @@ RSpec.describe ContentSignals::Configuration do
       expect(config.redis_enabled?).to be false
     end
   end
+
+  describe "#resolved_geoip_provider" do
+    it "defaults to MaxmindProvider" do
+      config = ContentSignals::Configuration.new
+      expect(config.resolved_geoip_provider).to eq(ContentSignals::Geoip::MaxmindProvider)
+    end
+
+    it "resolves :maxmind to MaxmindProvider" do
+      config = ContentSignals::Configuration.new
+      config.geoip_provider = :maxmind
+      expect(config.resolved_geoip_provider).to eq(ContentSignals::Geoip::MaxmindProvider)
+    end
+
+    it "resolves :ipinfo to IpinfoProvider" do
+      config = ContentSignals::Configuration.new
+      config.geoip_provider = :ipinfo
+      expect(config.resolved_geoip_provider).to eq(ContentSignals::Geoip::IpinfoProvider)
+    end
+
+    it "resolves :null to NullProvider" do
+      config = ContentSignals::Configuration.new
+      config.geoip_provider = :null
+      expect(config.resolved_geoip_provider).to eq(ContentSignals::Geoip::NullProvider)
+    end
+
+    it "returns a custom class directly" do
+      custom = Class.new { def self.locate(_ip) = nil }
+      config = ContentSignals::Configuration.new
+      config.geoip_provider = custom
+      expect(config.resolved_geoip_provider).to eq(custom)
+    end
+
+    it "raises ArgumentError for unknown symbol" do
+      config = ContentSignals::Configuration.new
+      config.geoip_provider = :unknown_provider
+      expect { config.resolved_geoip_provider }.to raise_error(ArgumentError, /Unknown geoip_provider/)
+    end
+  end
+
+  describe "geoip_token" do
+    it "defaults to nil" do
+      config = ContentSignals::Configuration.new
+      expect(config.geoip_token).to be_nil
+    end
+
+    it "can be set" do
+      config = ContentSignals::Configuration.new
+      config.geoip_token = "my_token"
+      expect(config.geoip_token).to eq("my_token")
+    end
+  end
 end
