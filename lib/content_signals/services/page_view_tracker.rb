@@ -57,7 +57,7 @@ module ContentSignals
       end
 
       # 4. Fallback to IP + User Agent hash (for non-cookie scenarios)
-      "anon_#{Digest::SHA256.hexdigest("#{@request.ip}:#{@request.user_agent}")[0..15]}"
+      "anon_#{Digest::SHA256.hexdigest("#{@request.remote_ip}:#{@request.user_agent}")[0..15]}"
     end
 
     def unique_today?
@@ -98,7 +98,7 @@ module ContentSignals
       {
         tenant_id: current_tenant_id,
         visitor_id: @visitor_id,
-        ip_address: @request.ip,
+        ip_address: @request.remote_ip,
         user_agent: @request.user_agent,
         referrer: @request.referrer,
         locale: detect_locale,
