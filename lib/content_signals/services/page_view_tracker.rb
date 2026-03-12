@@ -44,7 +44,7 @@ module ContentSignals
       if @request.respond_to?(:cookie_jar)
         cookie_id = @request.cookie_jar.signed[:visitor_id]
         return cookie_id if cookie_id.present?
-        
+
         # Generate and set new visitor cookie if none exists
         new_visitor_id = "visitor_#{SecureRandom.uuid}"
         @request.cookie_jar.signed[:visitor_id] = {
@@ -154,8 +154,8 @@ module ContentSignals
       # Prefer X-Real-IP (set by reverse proxies like Caddy/Nginx) over
       # remote_ip which may still contain an internal proxy IP when
       # kamal-proxy overwrites X-Forwarded-For.
-      real_ip = @request.headers['X-Real-IP']
-      return real_ip if real_ip.present? && !private_ip?(real_ip)
+      # real_ip = @request.headers['X-Real-IP']
+      # return real_ip if real_ip.present? && !private_ip?(real_ip)
 
       @request.remote_ip
     end
