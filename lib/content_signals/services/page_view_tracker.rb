@@ -98,7 +98,7 @@ module ContentSignals
       {
         tenant_id: current_tenant_id,
         visitor_id: @visitor_id,
-        ip_address: @request.remote_ip,
+        ip_address: resolve_client_ip,
         user_agent: @request.user_agent,
         referrer: @request.referrer,
         locale: detect_locale,
@@ -148,6 +148,22 @@ module ContentSignals
     rescue => e
       Rails.logger.error "Failed to get tenant_id: #{e.message}"
       nil
+    end
+
+    def resolve_client_ip
+      # Prefer X-Real-IP (set by reverse proxies like Caddy/Nginx) over
+      # remote_ip which may still contain an internal proxy IP when
+      # kamal-proxy overwrites X-Forwarded-For.
+      real_ip = @request.headers['X-Real-IP']
+      return real_ip if real_ip.present? && !private_ip?(real_ip)
+
+      @request.remote_ip
+    end
+
+    def private_ip?(ip)
+      IPAddr.new(ip).private?
+    rescue IPAddr::InvalidAddressError
+      false
     end
 
     def redis_enabled?
