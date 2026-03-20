@@ -6,8 +6,11 @@ module ContentSignals
 
     # Associations
     belongs_to :trackable, polymorphic: true, counter_cache: :page_views_count
-    belongs_to :tenant, optional: true if ContentSignals.configuration.multitenancy?
     belongs_to :user, optional: true
+
+    # tenant_id is a plain string (UUID), not a foreign key — declare explicitly
+    # Guard allows db:migrate to run on a fresh DB before the table exists
+    attribute :tenant_id, :string if connection.table_exists?(table_name) rescue nil
 
     # Validations
     validates :trackable_type, :trackable_id, :visitor_id, :viewed_at, presence: true
@@ -15,24 +18,9 @@ module ContentSignals
     validates :device_type, inclusion: { in: %w[desktop mobile tablet] }, allow_nil: true
     validates :app_platform, inclusion: { in: %w[hybrid native] }, allow_nil: true
 
-    # Default scope for tenant isolation (when multitenancy is enabled)
-    if ContentSignals.configuration.multitenancy?
-      default_scope -> { where(tenant_id: current_tenant_id) }
-
-      def self.current_tenant_id
-        return nil unless ContentSignals.configuration.multitenancy?
-
-        method_name = ContentSignals.configuration.current_tenant_method
-        return nil unless method_name
-
-        # Try to get tenant_id from Current, controller, or thread
-        if defined?(Current) && Current.respond_to?(method_name)
-          Current.send(method_name)
-        elsif Thread.current[method_name]
-          Thread.current[method_name]
-        end
-      end
-    end
+    # Tenant filtering — use explicitly instead of default_scope to avoid
+    # silent NULL filtering in background jobs, console, and migrations.
+    scope :for_tenant, ->(id) { where(tenant_id: id) }
 
     # Time period scopes
     scope :today, -> { where("viewed_at >= ?", Time.current.beginning_of_day) }
