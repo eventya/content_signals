@@ -1,8 +1,8 @@
 class CreateContentSignalsPageViews < ActiveRecord::Migration<%= migration_version %>
   def change
     create_table :content_signals_page_views do |t|
-      # Multi-tenancy support (optional)
-      t.integer :tenant_id, index: true
+      # Multi-tenancy support (optional, string to support both UUID and integer tenant IDs)
+      t.string :tenant_id, index: true
 
       # Polymorphic trackable (Page, Profile, Event, etc.)
       t.string :trackable_type, null: false
