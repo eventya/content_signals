@@ -119,6 +119,7 @@ module ContentSignals
 
     def detect_platform_from_ua
       ua = @request.user_agent.to_s.downcase
+      return 'turbo_native' if ua.include?('turbo native')
       return 'capacitor' if ua.include?('capacitor')
       return 'cordova' if ua.include?('cordova')
       return 'react_native' if ua.include?('react-native')

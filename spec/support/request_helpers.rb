@@ -2,10 +2,11 @@
 
 # Mock request object for testing
 class MockRequest
-  attr_accessor :ip, :user_agent, :referrer, :headers, :params, :cookie_jar, :env
+  attr_accessor :ip, :remote_ip, :user_agent, :referrer, :headers, :params, :cookie_jar, :env
 
   def initialize(attributes = {})
     @ip = attributes[:ip] || "1.2.3.4"
+    @remote_ip = attributes[:remote_ip] || @ip
     @user_agent = attributes[:user_agent] || "Mozilla/5.0"
     @referrer = attributes[:referrer]
     @headers = attributes[:headers] || {}

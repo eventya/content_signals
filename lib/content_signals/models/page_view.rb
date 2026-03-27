@@ -15,8 +15,8 @@ module ContentSignals
     # Validations
     validates :trackable_type, :trackable_id, :visitor_id, :viewed_at, presence: true
     validates :country_code, length: { maximum: 2 }, allow_nil: true
-    validates :device_type, inclusion: { in: %w[desktop mobile tablet] }, allow_nil: true
-    validates :app_platform, inclusion: { in: %w[hybrid native] }, allow_nil: true
+    validates :device_type, inclusion: { in: %w[desktop mobile tablet hybrid_app] }, allow_nil: true
+    validates :app_platform, inclusion: { in: %w[hybrid native turbo_native capacitor cordova react_native flutter webview] }, allow_nil: true
 
     # Tenant filtering — use explicitly instead of default_scope to avoid
     # silent NULL filtering in background jobs, console, and migrations.

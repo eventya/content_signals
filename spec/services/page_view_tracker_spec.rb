@@ -383,6 +383,18 @@ RSpec.describe ContentSignals::PageViewTracker do
       end
     end
 
+    it 'detects turbo_native from Turbo Native user agent' do
+      request.user_agent = 'Turbo Native iOS/1.0'
+      result = tracker.send(:detect_platform_from_ua)
+      expect(result).to eq('turbo_native')
+    end
+
+    it 'detects turbo_native for Android Turbo Native user agent' do
+      request.user_agent = 'Turbo Native Android/1.0'
+      result = tracker.send(:detect_platform_from_ua)
+      expect(result).to eq('turbo_native')
+    end
+
     it 'returns nil for regular browser user agent' do
       request.user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
       result = tracker.send(:detect_platform_from_ua)
@@ -622,6 +634,33 @@ RSpec.describe ContentSignals::PageViewTracker do
       expect(data).to include(
         visitor_id: "user_#{user.id}",
         ip_address: '192.168.1.100'
+      )
+    end
+  end
+
+  describe 'Turbo Native (Hotwire) mobile app integration' do
+    let(:native_request) do
+      MockRequest.new(
+        ip: '192.168.1.100',
+        user_agent: 'Turbo Native iOS/1.0',
+        referrer: nil
+      )
+    end
+
+    it 'sets app_platform to turbo_native and device_type to hybrid_app' do
+      allow(ContentSignals::VisitorLocationService).to receive(:locate).and_return(nil)
+      allow(ContentSignals::TrackPageViewJob).to receive(:perform_later)
+
+      described_class.track(trackable: page, request: native_request, user: user)
+
+      expect(ContentSignals::TrackPageViewJob).to have_received(:perform_later).with(
+        'Page',
+        page.id,
+        user.id,
+        hash_including(
+          app_platform: 'turbo_native',
+          device_type: 'hybrid_app'
+        )
       )
     end
   end
