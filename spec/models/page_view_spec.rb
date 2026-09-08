@@ -80,6 +80,40 @@ RSpec.describe ContentSignals::PageView do
       )
       expect(page_view).not_to be_valid
     end
+
+    # `scope :app` queries this value, so rejecting it made a view from a mobile app
+    # impossible to store — and TrackPageViewJob rescues the failure, so the view was
+    # dropped in silence.
+    it "accepts the device type a mobile app is recorded under" do
+      page_view = described_class.new(
+        trackable: page,
+        visitor_id: "test",
+        viewed_at: Time.current,
+        device_type: "hybrid_app"
+      )
+      expect(page_view).to be_valid
+    end
+
+    # Every value detect_platform_from_ua can return has to be storable, or the view it
+    # was detected on is thrown away.
+    %w[turbo_native capacitor cordova react_native flutter webview].each do |platform|
+      it "accepts #{platform}, which the tracker can detect" do
+        page_view = described_class.new(
+          trackable: page,
+          visitor_id: "test",
+          viewed_at: Time.current,
+          app_platform: platform
+        )
+        expect(page_view).to be_valid
+      end
+    end
+
+    it "finds a view from an app through the app scope" do
+      described_class.create!(trackable: page, visitor_id: "v1", viewed_at: Time.current,
+                              device_type: "hybrid_app", app_platform: "turbo_native")
+
+      expect(described_class.app.count).to eq(1)
+    end
   end
 
   describe "time period scopes" do
