@@ -383,14 +383,31 @@ RSpec.describe ContentSignals::PageViewTracker do
       end
     end
 
-    it 'detects turbo_native from Turbo Native user agent' do
-      request.user_agent = 'Turbo Native iOS/1.0'
-      result = tracker.send(:detect_platform_from_ua)
-      expect(result).to eq('turbo_native')
+    # Every request an app makes carries this name, whichever surface makes it. iOS sets
+    # `applicationNameForUserAgent`, so its webview appends the app's names to Safari's own
+    # user agent; Android's webview prepends them to Chrome's. Each platform's HTTP client
+    # sends the name on its own, with no browser user agent around it at all.
+    {
+      'a page opened inside the iOS app' =>
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 ' \
+        '(KHTML, like Gecko) Jumpstart Pro iOS; Hotwire Native iOS; Turbo Native iOS; ' \
+        'bridge-components: [form menu-button]',
+      'a page opened inside the Android app' =>
+        'Jumpstart Pro Android; Hotwire Native Android; Turbo Native Android;',
+      "iOS's own HTTP client" => 'Jumpstart Pro iOS; Hotwire Native iOS;',
+      "Android's own HTTP client" =>
+        'Hotwire Native Android Dalvik/2.1.0 (Linux; U; Android 16; sdk_gphone64_arm64)',
+      'a build that sends the name alone' => 'Hotwire Native iOS/1.0'
+    }.each do |description, user_agent|
+      it "detects the app from #{description}" do
+        request.user_agent = user_agent
+        result = tracker.send(:detect_platform_from_ua)
+        expect(result).to eq('turbo_native')
+      end
     end
 
-    it 'detects turbo_native for Android Turbo Native user agent' do
-      request.user_agent = 'Turbo Native Android/1.0'
+    it 'reads the name whatever its casing' do
+      request.user_agent = 'HOTWIRE NATIVE Android'
       result = tracker.send(:detect_platform_from_ua)
       expect(result).to eq('turbo_native')
     end
@@ -399,6 +416,23 @@ RSpec.describe ContentSignals::PageViewTracker do
       request.user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
       result = tracker.send(:detect_platform_from_ua)
       expect(result).to be_nil
+    end
+
+    # A link opened in the phone's own browser is a phone, not the app, and has to stay
+    # that way — the two are the whole point of telling them apart.
+    {
+      'Chrome on Android' =>
+        'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) ' \
+        'Chrome/152.0.0.0 Mobile Safari/537.36',
+      'Safari on iPhone' =>
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 ' \
+        '(KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'
+    }.each do |description, user_agent|
+      it "leaves #{description} as the browser it is" do
+        request.user_agent = user_agent
+        result = tracker.send(:detect_platform_from_ua)
+        expect(result).to be_nil
+      end
     end
   end
 
@@ -638,12 +672,59 @@ RSpec.describe ContentSignals::PageViewTracker do
     end
   end
 
-  describe 'Turbo Native (Hotwire) mobile app integration' do
+  describe 'Hotwire Native mobile app integration' do
     let(:native_request) do
       MockRequest.new(
         ip: '192.168.1.100',
-        user_agent: 'Turbo Native iOS/1.0',
+        user_agent: 'Jumpstart Pro iOS; Hotwire Native iOS; Turbo Native iOS;',
         referrer: nil
+      )
+    end
+
+    # Whatever the surface, a view from inside an app is a view from the app. Read by device
+    # alone these are a phone and a desktop, which is how they were counted before.
+    {
+      'a page opened inside the iOS app' =>
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 ' \
+        '(KHTML, like Gecko) Jumpstart Pro iOS; Hotwire Native iOS; Turbo Native iOS;',
+      'a page opened inside the Android app' =>
+        'Jumpstart Pro Android; Hotwire Native Android; Turbo Native Android;',
+      "iOS's own HTTP client" => 'Jumpstart Pro iOS; Hotwire Native iOS;',
+      "Android's own HTTP client" =>
+        'Hotwire Native Android Dalvik/2.1.0 (Linux; U; Android 16; sdk_gphone64_arm64)'
+    }.each do |description, user_agent|
+      it "records #{description} as a view from the app" do
+        allow(ContentSignals::VisitorLocationService).to receive(:locate).and_return(nil)
+        allow(ContentSignals::TrackPageViewJob).to receive(:perform_later)
+
+        described_class.track(
+          trackable: page,
+          request: MockRequest.new(ip: '192.168.1.100', user_agent: user_agent, referrer: nil),
+          user: user
+        )
+
+        expect(ContentSignals::TrackPageViewJob).to have_received(:perform_later).with(
+          'Page', page.id, user.id,
+          hash_including(app_platform: 'turbo_native', device_type: 'hybrid_app')
+        )
+      end
+    end
+
+    it 'still records a phone browser as a phone' do
+      allow(ContentSignals::VisitorLocationService).to receive(:locate).and_return(nil)
+      allow(ContentSignals::TrackPageViewJob).to receive(:perform_later)
+
+      browser = MockRequest.new(
+        ip: '192.168.1.100',
+        user_agent: 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 ' \
+                    '(KHTML, like Gecko) Chrome/152.0.0.0 Mobile Safari/537.36',
+        referrer: nil
+      )
+      described_class.track(trackable: page, request: browser, user: user)
+
+      expect(ContentSignals::TrackPageViewJob).to have_received(:perform_later).with(
+        'Page', page.id, user.id,
+        hash_including(app_platform: nil, device_type: 'mobile')
       )
     end
 
